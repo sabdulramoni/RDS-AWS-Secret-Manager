@@ -10,7 +10,7 @@ resource "aws_db_instance" "prod" {
   engine_version       = "5.7"
   instance_class       = "db.t3.micro"
   username             = "administrator"
-  password             = random_password.main.result
+  password             = data.aws_secretsmanager_secret_version.rds_password.secret_string
   parameter_group_name = "default.mysql5.7"
   skip_final_snapshot  = true
 }
@@ -22,13 +22,23 @@ resource "random_password" "main" {
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-# # Store Passowrd
-# resource "aws_secretsmanager_secret" "rds_password" {
-#   name = "mydb_passowrd"
-#   description = "Password for my RDS database"
-#   recovery_window_in_days = 0 # it delete the passowrd immediately
-# }
+# Store Passowrd
+resource "aws_secretsmanager_secret" "rds_password" {
+  name = "mydb_passowrd"
+  description = "Password for my RDS database"
+  recovery_window_in_days = 0 # it delete the passowrd permanently
+}
 
+resource "aws_secretsmanager_secret_version" "rds_password" {
+  secret_id     = aws_secretsmanager_secret.rds_password.id
+  secret_string = "random_passowrd.main.result"
+}
+
+# Retrieve Passowrd
+data "aws_secretsmanager_secret_version" "rds_password" {
+  secret_id = aws_secretsmanager_secret.rds_password.id
+  depends_on = [aws_secretsmanager_secret_version.rds_password]
+}
 
 #......... output
 output "rds_address" {
